@@ -1,9 +1,9 @@
 --[[
       UP Deck Lua script
       Author: John Craig
-      Version: 2.1.14
-      Released: 2019-07-05
-      Notes: scene item scaling
+      Version: 2.1.15
+      Released: 2019-07-09
+      Notes: scene item scaling, msgPath => transitions
 --]]
 
 
@@ -1346,6 +1346,7 @@ local function process(cData)
 			obsAlignment = obsAlignment,
 			obsBoundsType = obsBoundsType,
 			animTag = animTag,
+			msgPath = msgPath,
 		}
 		local trans, msg = loadfile(msgPath.."/Transitions/"..(vParams.trans or "_")..".lua", "bt", env)
 		if not trans then
