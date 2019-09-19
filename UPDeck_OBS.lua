@@ -1,9 +1,14 @@
 --[[
-      UP Deck Lua script
-      Author: John Craig
-      Version: 2.1.15
-      Released: 2019-07-09
-      Notes: scene item scaling, msgPath => transitions
+	UP Deck Lua script
+	Author: John Craig
+	Version: 2.1.17
+	Released: 2019-09-19
+	
+	Notes:
+		countdown relative values
+		scene item scaling,
+		msgPath => transitions,
+		set text in animation
 --]]
 
 
@@ -490,7 +495,10 @@ local function process(cData)
 				end -- filter source exists
 			end
 		end
-		local animObject = format("%s/%s", sceneName, itemName)
+
+		-- qtag parameter can define the animation id - default is scene/item
+		local animObject = vParams.qtag or format("%s/%s", sceneName, itemName)
+		
 		if queue then
 			if queue == 0 then
 				animQ[animObject] = nil
@@ -513,6 +521,16 @@ local function process(cData)
 			animId = nextAnimId()
 		else
 			animId = animReset
+		end
+
+		-- update text / image
+		if vParams.text or vParams.image then
+			local s = obs.obs_data_create()
+			s = obs.obs_source_get_settings(source)
+			if vParams.text then obs.obs_data_set_string(s, "text", vParams.text) end
+			if vParams.image then obs.obs_data_set_string(s, "file", vParams.image) end
+			obs.obs_source_update(source, s)
+			obs.obs_data_release(s)
 		end
 
 		-- check if OK to animate
@@ -1143,6 +1161,10 @@ local function process(cData)
 		local sourceName = vParams.source or ""
 		local source = obs.obs_get_source_by_name(sourceName)
 		local val = tonumber(vParams.val) or 10
+		-- check for a relative value
+		if vParams.val and vParams.val:match("^%(%-?[%d.]+%)$") then
+			val = math.max(0, (countdown[sourceName] and countdown[sourceName].val or 0) + (tonumber(vParams.val:sub(2, -2)) or 0))
+		end
 		local cb = vParams.trigger
 		if source and val then
 			if not countdown[sourceName] then
