@@ -1,14 +1,14 @@
 --[[
 	UP Deck Lua script
 	Author: John Craig
-	Version: 2.1.17
-	Released: 2019-09-19
+	Version: 2.1.19
+	Released: 2020-02-25
 	
 	Notes:
-		countdown relative values
-		scene item scaling,
-		msgPath => transitions,
-		set text in animation
+		update line break text
+		text source line breaks
+		trigger added to fade
+		pause countdown timers
 --]]
 
 
@@ -35,6 +35,7 @@ local countdown = {}
 local anim, animQ = {}, {}
 local animRef, animReset = 0, 0
 local animTag = {}
+local lineBreak = "<br>"
 local format = string.format
 local scrSwitch = {}
 local timerId = 0
@@ -323,6 +324,7 @@ local function process(cData)
 		-- set volume
 		if vParams.val then
 			local val = tonumber(vParams.val) or 0
+			val = format("%0.3f", math.pow(val, 3))
 			for i = 2, #iParams do
 				local name = iParams[i] or ""
 				local source = obs.obs_get_source_by_name(name)
@@ -337,6 +339,8 @@ local function process(cData)
 		local volume = tonumber(vParams.volume) or 0
 		local steps = tonumber(vParams.steps)
 		local interval = tonumber(vParams.interval)
+		local cb = vParams.trigger
+		local dev = vParams.device
 		if volume < 0 then volume = 0 elseif volume > 1 then volume = 1 end
 		if steps and interval then
 			if steps < 1 then steps = 1 end
@@ -356,6 +360,7 @@ local function process(cData)
 							step = step + 1
 							if step > steps then
 								obs.obs_source_release(source)
+								if cb then send(format("trigger\t%s\t%s", cb, dev)) end
 								obs.remove_current_callback()
 							end
 						end,
@@ -1157,6 +1162,26 @@ local function process(cData)
 				send(format("objdata\t%s\t%s\t%0d\t%0d\t%0d\t%0d\t%d", sceneName, itemName, pos.x, pos.y, bounds.x, bounds.y, anchor))
 			end
 		end
+	elseif cmd == "cdpause" then
+		-- set / unset / toggle pause for 1 or more countdown timers
+		local val = vParams.val or ""
+		local toggle = false
+		if val == "0" then
+			val = false
+		elseif val == "1" then
+			val = true
+		else
+			toggle = true
+		end
+		for i = 2, #iParams do
+			local cd = countdown[iParams[i]]
+			if cd then
+				if toggle then
+					val = not cd.pause
+				end
+				cd.pause = val
+			end	
+		end
 	elseif cmd == "countdown" then
 		local sourceName = vParams.source or ""
 		local source = obs.obs_get_source_by_name(sourceName)
@@ -1166,25 +1191,35 @@ local function process(cData)
 			val = math.max(0, (countdown[sourceName] and countdown[sourceName].val or 0) + (tonumber(vParams.val:sub(2, -2)) or 0))
 		end
 		local cb = vParams.trigger
+		local up = vParams.up and val
+		local neg = vParams.negative
+		local secs = vParams.seconds
+		local dev = vParams.device
 		if source and val then
 			if not countdown[sourceName] then
 				obs.timer_add(
 					function()
 						local s = obs.obs_get_source_by_name(sourceName)
 						if s then
-							countdown[sourceName].val = ( tonumber(countdown[sourceName].val) or 0 ) - 1
-							local t = countdown[sourceName].val
-							if t < 0 then
-								if countdown[sourceName].cb then send("trigger\t"..countdown[sourceName].cb) end
-								countdown[sourceName] = nil
-								obs.remove_current_callback()
-								if debug then obs.script_log(obs.LOG_INFO, format("Countdown complete : %s", sourceName)) end
-							else
-								local set = obs.obs_data_create()
-								set = obs.obs_source_get_settings(s)
-								obs.obs_data_set_string(set, "text", minsSecs(t))
-								obs.obs_source_update(s, set)
-								obs.obs_data_release(set)
+							local cd = countdown[sourceName] or {}
+							if not cd.pause then
+								cd.val = ( tonumber(cd.val) or 0 ) - 1
+								local t = cd.val
+								if t < 0 then
+									if cd.cb then send(format("trigger\t%s\t%s", cd.cb, cd.dev)) end
+									countdown[sourceName] = nil
+									obs.remove_current_callback()
+									if debug then obs.script_log(obs.LOG_INFO, format("Countdown complete : %s", sourceName)) end
+								else
+									if cd.up then t = cd.up - t end
+									if not cd.secs then t = minsSecs(t) end
+									if cd.neg then t = "-"..t end
+									local set = obs.obs_data_create()
+									set = obs.obs_source_get_settings(s)
+									obs.obs_data_set_string(set, "text", t)
+									obs.obs_source_update(s, set)
+									obs.obs_data_release(set)
+								end
 							end
 							obs.obs_source_release(s)
 						else
@@ -1196,10 +1231,13 @@ local function process(cData)
 					1000
 				)
 			end
-			countdown[sourceName] = { val=val, cb=cb }
+			countdown[sourceName] = { val=val, cb=cb, up=up, neg=neg, secs=secs, dev=dev, pause=false }
+			local t = up and 0 or val
+			if not secs then t = minsSecs(t) end
+			if neg then t = "-"..t end
 			local set = obs.obs_data_create()
 			set = obs.obs_source_get_settings(source)
-			obs.obs_data_set_string(set, "text", minsSecs(val))
+			obs.obs_data_set_string(set, "text", t)
 			obs.obs_source_update(source, set)
 			obs.obs_data_release(set)
 			obs.obs_source_release(source)
@@ -1225,13 +1263,20 @@ local function process(cData)
 			obs.obs_data_release(s)
 			obs.obs_source_release(source)
 		end
+	elseif cmd == "linebreak" then
+		-- update line break code
+		lineBreak = vParams.text or "<br>"
 	elseif cmd == "text" then
 		-- update source text
+		if vParams["break"] then
+			lineBreak = vParams["break"] or "<br>"
+		end
 		local source = obs.obs_get_source_by_name(vParams.source or "")
+		local text = (vParams.text or ""):gsub(lineBreak, "\n")
 		if source and vParams.text then
 			local s = obs.obs_data_create()
 			s = obs.obs_source_get_settings(source)
-			obs.obs_data_set_string(s, "text", vParams.text)
+			obs.obs_data_set_string(s, "text", text)
 			obs.obs_source_update(source, s)
 			obs.obs_data_release(s)
 			obs.obs_source_release(source)
