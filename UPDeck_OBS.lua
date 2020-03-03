@@ -1,10 +1,11 @@
 --[[
 	UP Deck Lua script
 	Author: John Craig
-	Version: 2.1.19
-	Released: 2020-02-25
+	Version: 2.1.20
+	Released: 2020-03-03
 	
 	Notes:
+		countdown timers update
 		update line break text
 		text source line breaks
 		trigger added to fade
@@ -32,6 +33,8 @@ local replays = {}
 local repSrc = "UP DECK REPLAY"
 local repPfx = "Replay"
 local countdown = {}
+local syncdown = {}
+local syncInit = false
 local anim, animQ = {}, {}
 local animRef, animReset = 0, 0
 local animTag = {}
@@ -1163,7 +1166,7 @@ local function process(cData)
 			end
 		end
 	elseif cmd == "cdpause" then
-		-- set / unset / toggle pause for 1 or more countdown timers
+		-- set / unset / toggle pause for 1 or more synced countdown timers
 		local val = vParams.val or ""
 		local toggle = false
 		if val == "0" then
@@ -1174,7 +1177,7 @@ local function process(cData)
 			toggle = true
 		end
 		for i = 2, #iParams do
-			local cd = countdown[iParams[i]]
+			local cd = syncdown[iParams[i]]
 			if cd then
 				if toggle then
 					val = not cd.pause
@@ -1184,63 +1187,68 @@ local function process(cData)
 		end
 	elseif cmd == "countdown" then
 		local sourceName = vParams.source or ""
-		local source = obs.obs_get_source_by_name(sourceName)
-		local val = tonumber(vParams.val) or 10
-		-- check for a relative value
-		if vParams.val and vParams.val:match("^%(%-?[%d.]+%)$") then
-			val = math.max(0, (countdown[sourceName] and countdown[sourceName].val or 0) + (tonumber(vParams.val:sub(2, -2)) or 0))
-		end
 		local cb = vParams.trigger
 		local up = vParams.up and val
 		local neg = vParams.negative
 		local secs = vParams.seconds
 		local dev = vParams.device
-		if source and val then
-			if not countdown[sourceName] then
-				obs.timer_add(
-					function()
-						local s = obs.obs_get_source_by_name(sourceName)
-						if s then
-							local cd = countdown[sourceName] or {}
-							if not cd.pause then
-								cd.val = ( tonumber(cd.val) or 0 ) - 1
-								local t = cd.val
-								if t < 0 then
-									if cd.cb then send(format("trigger\t%s\t%s", cd.cb, cd.dev)) end
-									countdown[sourceName] = nil
-									obs.remove_current_callback()
-									if debug then obs.script_log(obs.LOG_INFO, format("Countdown complete : %s", sourceName)) end
-								else
-									if cd.up then t = cd.up - t end
-									if not cd.secs then t = minsSecs(t) end
-									if cd.neg then t = "-"..t end
-									local set = obs.obs_data_create()
-									set = obs.obs_source_get_settings(s)
-									obs.obs_data_set_string(set, "text", t)
-									obs.obs_source_update(s, set)
-									obs.obs_data_release(set)
-								end
-							end
-							obs.obs_source_release(s)
-						else
-							countdown[sourceName] = nil
-							obs.remove_current_callback()
-							if debug then obs.script_log(obs.LOG_INFO, format("Countdown error : %s", sourceName)) end
-						end
-					end,
-					1000
-				)
+		if sourceName then iParams[#iParams + 1] = sourceName end
+		for i = 2, #iParams do
+			local sourceName = iParams[i]
+			local source = obs.obs_get_source_by_name(sourceName)
+			local val = tonumber(vParams.val) or 10
+			-- check for relative value
+			if vParams.val and vParams.val:match("^%(%-?[%d.]+%)$") then
+				val = math.max(0, (syncdown[sourceName] and syncdown[sourceName].val or 0) + (tonumber(vParams.val:sub(2, -2)) or 0))
 			end
-			countdown[sourceName] = { val=val, cb=cb, up=up, neg=neg, secs=secs, dev=dev, pause=false }
-			local t = up and 0 or val
-			if not secs then t = minsSecs(t) end
-			if neg then t = "-"..t end
-			local set = obs.obs_data_create()
-			set = obs.obs_source_get_settings(source)
-			obs.obs_data_set_string(set, "text", t)
-			obs.obs_source_update(source, set)
-			obs.obs_data_release(set)
-			obs.obs_source_release(source)
+			if source and val then
+				if not syncInit then
+					obs.timer_add(
+						function()
+							--if debug then obs.script_log(obs.LOG_INFO, "Syncdown...") end
+							for sourceName, cd in pairs(syncdown) do
+								local s = obs.obs_get_source_by_name(sourceName)
+								if s then
+									if not cd.pause then
+										cd.val = ( tonumber(cd.val) or 0 ) - 1
+										local t = cd.val
+										if t < 0 then
+											if cd.cb then send(format("trigger\t%s\t%s", cd.cb, cd.dev)) end
+											syncdown[sourceName] = nil
+											if debug then obs.script_log(obs.LOG_INFO, format("Syncdown complete : %s", sourceName)) end
+										else
+											if cd.up then t = cd.up - t end
+											if not cd.secs then t = minsSecs(t) end
+											if cd.neg then t = "-"..t end
+											local set = obs.obs_data_create()
+											set = obs.obs_source_get_settings(s)
+											obs.obs_data_set_string(set, "text", t)
+											obs.obs_source_update(s, set)
+											obs.obs_data_release(set)
+										end
+									end
+									obs.obs_source_release(s)
+								else
+									syncdown[sourceName] = nil
+									if debug then obs.script_log(obs.LOG_INFO, format("Syncdown error : %s", sourceName)) end
+								end
+							end -- syncdown
+						end,
+						1000
+					)
+					syncInit = true
+				end
+				syncdown[sourceName] = { val=val, cb=cb, up=up, neg=neg, secs=secs, dev=dev, pause=false }
+				local t = up and 0 or val
+				if not secs then t = minsSecs(t) end
+				if neg then t = "-"..t end
+				local set = obs.obs_data_create()
+				set = obs.obs_source_get_settings(source)
+				obs.obs_data_set_string(set, "text", t)
+				obs.obs_source_update(source, set)
+				obs.obs_data_release(set)
+				obs.obs_source_release(source)
+			end -- iParams
 		end
 	elseif cmd == "counter" then
 		-- use text source as counter / scoreboard
