@@ -1,8 +1,8 @@
 --[[
 	UP Deck Lua script
 	Author: John Craig
-	Version: 2.1.20
-	Released: 2020-03-03
+	Version: 2.1.21
+	Released: 2020-04-27
 	
 	Notes:
 		countdown timers update
@@ -10,6 +10,7 @@
 		text source line breaks
 		trigger added to fade
 		pause countdown timers
+		set preview scene
 --]]
 
 
@@ -815,6 +816,13 @@ local function process(cData)
 		if scene then obs.obs_frontend_set_current_scene(scene) end
 		obs.source_list_release(scenes)
 		obs.source_list_release(transitions)
+	elseif cmd == "preview" then
+		-- set preview scene in studio mode
+		local name = vParams.scene or "_none"
+		local scenes = obs.obs_frontend_get_scenes()
+		local scene = findSource(scenes, name)
+		if scene then obs.obs_frontend_set_current_preview_scene(scene) end
+		obs.source_list_release(scenes)
 	elseif cmd == "obsfx" and iParams[2] then
 		-- sfx flag : OBS or desktop app
 		sfx = iParams[2] == "1"
@@ -869,8 +877,7 @@ local function process(cData)
 		else
 			active = true
 		end
-		print("a="..tostring(active))
-		obs.obs_frontend_set_preview_program_mode(false)
+		obs.obs_frontend_set_preview_program_mode(active)
 	elseif cmd == "stream" then
 		if iParams[2] == "start" then 
 			if not obs.obs_frontend_streaming_active() then obs.obs_frontend_streaming_start() end
