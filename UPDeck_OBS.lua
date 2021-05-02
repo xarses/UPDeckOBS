@@ -44,6 +44,7 @@ local format = string.format
 local scrSwitch = {}
 local timerId = 0
 local listen -- forward declaration
+local xdeck = ""
 
 
 ffi.cdef[[
@@ -1566,15 +1567,16 @@ end
 
 local function onHotKey(id)
 	if debug then obs.script_log(obs.LOG_INFO, format("Hotkey : %d", id)) end
-	if obs2app then
-		local cData
-		local f, err = io.open(msgPath.."/Actions/"..id..".txt", "rb")
-		if f then
-			cData = f:read("*all")
-			f:close()
-			listen(cData)
-		end
-	end
+	sendDsk(format("button\tid=%s\tdeck=%s", id,xdeck))
+	--if obs2app then
+	--	local cData
+	--	local f, err = io.open(msgPath.."/Actions/"..id..".txt", "rb")
+	--	if f then
+	--		cData = f:read("*all")
+	--		f:close()
+	--		listen(cData)
+	--	end
+	--end
 end
 
 
@@ -1669,6 +1671,7 @@ function script_update(settings)
 	sfxCmd = obs.obs_data_get_string(settings, "sfxCmd")
 	sfxPath = obs.obs_data_get_string(settings, "sfxPath")
 	repPath = obs.obs_data_get_string(settings, "repPath")
+	xdeck = obs.obs_data_get_string(settings, "xdeck")
 	init()
 end
 
@@ -1689,6 +1692,7 @@ function script_properties()
 	obs.obs_properties_add_text(props, "sfxCmd", "sfx Command", obs.OBS_TEXT_DEFAULT)
 	obs.obs_properties_add_path(props, "sfxPath", "sfx Folder", obs.OBS_PATH_DIRECTORY, "", nil)
 	obs.obs_properties_add_path(props, "repPath", "Replay Folder", obs.OBS_PATH_DIRECTORY, "", nil)
+	obs.obs_properties_add_text(props, "xdeck", "Hotkey Deck Name", obs.OBS_TEXT_DEFAULT)
 	obs.obs_properties_add_bool(props, "debug", "Debug")
 	return props
 end
@@ -1702,6 +1706,7 @@ function script_defaults(settings)
 	obs.obs_data_set_default_int(settings, "interval", 5)
 	obs.obs_data_set_default_string(settings, "sfxCmd", "")
 	obs.obs_data_set_default_bool(settings, "debug", false)
+	obs.obs_data_set_default_string(settings, "xdeck", "")
 end
 
 
