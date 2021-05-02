@@ -144,6 +144,12 @@ local function currentSceneName()
 	return name
 end
 
+local function currentPreviewSceneName()
+	local source = obs.obs_frontend_get_current_preview_scene()
+	local name = obs.obs_source_get_name(source)
+	obs.obs_source_release(source)
+	return name
+end
 
 local function allSceneNames()
 	local sceneNames = {}
@@ -155,6 +161,21 @@ local function allSceneNames()
 	return sceneNames
 end
 
+local function resolveSceneName(name)
+	local resolved = name
+	if name == "_current" then
+		resolved = currentSceneName()
+	elseif name == "_previous" then
+		if prevScene then
+			resolved = prevScene
+		else
+			resolved = "_none"
+		end
+	elseif name == "_preview" then
+		resolved = currentPreviewSceneName()
+	end
+	return resolved
+end
 
 local function emptyScene(scene)
 	local items = obs.obs_scene_enum_items(scene)
@@ -408,8 +429,7 @@ local function process(cData)
 		else
 			toggle = true
 		end
-		local sceneName = vParams.scene or ""
-		if sceneName == "_current" then sceneName = currentSceneName() end
+		local sceneName = resolveSceneName(vParams.scene or "")
 		if sceneName == "_all" then
 			sceneNames = allSceneNames()
 		else
@@ -429,7 +449,7 @@ local function process(cData)
 		end
 	elseif cmd == "move" or cmd == "animate" then
 		-- animate scene item properties
-		local sceneName = vParams.scene
+		local sceneName = resolveSceneName(vParams.scene)
 		local itemName = vParams.item
 		local relative = {}
 		for _, _p in ipairs({"x", "y", "w", "h", "r", "cl", "cr", "ct", "cb", "sw", "sh", "alpha"}) do
@@ -449,7 +469,7 @@ local function process(cData)
 		local cb = tonumber(vParams.cb)
 		local sw = tonumber(vParams.sw)
 		local sh = tonumber(vParams.sh)
-		local morphScene = vParams.morphScene or vParams.scene2
+		local morphScene = resolveSceneName(vParams.morphScene or vParams.scene2)
 		local morph = vParams.morph
 		local alpha = tonumber(vParams.alpha)
 		local steps = tonumber(vParams.steps) or 1
@@ -465,7 +485,6 @@ local function process(cData)
 		local delay = tonumber(vParams.delay)
 		local tag = vParams.tag
 		if not sceneName or not itemName then return false end
-		if sceneName == "_current" then sceneName = currentSceneName() end
 		local sceneItem = findSceneItem(sceneName, itemName, vParams.group)
 		if not sceneItem then return false end
 		local source = obs.obs_sceneitem_get_source(sceneItem)
@@ -809,8 +828,7 @@ local function process(cData)
 		local transitions = obs.obs_frontend_get_transitions()
 		transition = findSource(transitions, transition)
 		if transition then obs.obs_frontend_set_current_transition(transition) end
-		local name = vParams.scene or "_none"
-		if name == "_previous" and prevScene then name = prevScene end
+		local name = resolveSceneName(vParams.scene or "_none")
 		prevScene = currentSceneName()
 		local scenes = obs.obs_frontend_get_scenes()
 		local scene = findSource(scenes, name)
@@ -819,7 +837,7 @@ local function process(cData)
 		obs.source_list_release(transitions)
 	elseif cmd == "preview" then
 		-- set preview scene in studio mode
-		local name = vParams.scene or "_none"
+		local name = resolveSceneName(vParams.scene or "_none")
 		local scenes = obs.obs_frontend_get_scenes()
 		local scene = findSource(scenes, name)
 		if scene then obs.obs_frontend_set_current_preview_scene(scene) end
@@ -925,7 +943,7 @@ local function process(cData)
 		end
 	elseif cmd == "position" or cmd == "resize" or cmd == "rotate" or cmd == "opacity" then
 		-- set anchor point / position / size / bounds type
-		local sceneName = vParams.scene
+		local sceneName = resolveSceneName(vParams.scene)
 		local itemName = vParams.item
 		local boundsType = vParams.bounds
 		local relative = {}
@@ -949,10 +967,9 @@ local function process(cData)
 		local sw = tonumber(vParams.sw)
 		local sh = tonumber(vParams.sh)
 		local alpha = tonumber(vParams.alpha)
-		local morphScene = vParams.morphScene or vParams.scene2
+		local morphScene =resolveSceneName(vParams.morphScene or vParams.scene2)
 		local morph = vParams.morph
 		if not sceneName or not itemName then return false end
-		if sceneName == "_current" then sceneName = currentSceneName() end
 		local sceneItem = findSceneItem(sceneName, itemName, vParams.group)
 		if morph then
 			local mTarget = findSceneItem(morphScene or sceneName, morph, vParams.morphGroup or vParams.group)
@@ -1053,10 +1070,9 @@ local function process(cData)
 		end
 	elseif cmd == "order" then
 		-- change scene item layer / order position
-		local sceneName = vParams.scene
+		local sceneName = resolveSceneName(vParams.scene)
 		local itemName = vParams.item
 		if sceneName and itemName then
-			if sceneName == "_current" then sceneName = currentSceneName() end
 			local sceneItem = findSceneItem(sceneName, itemName, vParams.group)
 			if sceneItem then
 				for i = 2, #iParams do
@@ -1078,12 +1094,11 @@ local function process(cData)
 		obs.obs_frontend_open_projector(pType, monitor, geom, name)
 	elseif cmd == "filter" then
 		-- enable / disable filter
-		local sceneName = vParams.scene
+		local sceneName = resolveSceneName(vParams.scene)
 		local itemName = vParams.item
 		local filterName = vParams.filter
 		local active = vParams.active
 		if sceneName and itemName and filterName and active then
-			if sceneName == "_current" then sceneName = currentSceneName() end
 			local sceneItem = findSceneItem(sceneName, itemName, vParams.group)
 			if sceneItem then
 				local source = obs.obs_sceneitem_get_source(sceneItem)
@@ -1118,10 +1133,9 @@ local function process(cData)
 	elseif cmd == "dragitem" then
 		-- dragpad scene item select
 		dragItem = nil
-		local sceneName = vParams.scene or iParams[2]
+		local sceneName = resolveSceneName(vParams.scene or iParams[2])
 		local sceneItem = vParams.item or iParams[3]
 		if sceneName and sceneItem then
-			if sceneName == "_current" then sceneName = currentSceneName() end
 			dragItem = findSceneItem(sceneName, sceneItem, vParams.group)
 			dragSource = obs.obs_sceneitem_get_source(dragItem)
 			--obs.obs_sceneitem_set_bounds_type(dragItem, obsBoundsType.outer)
@@ -1165,7 +1179,7 @@ local function process(cData)
 		end
 	elseif cmd == "getobjdata" then
 		-- get scene item data
-		local sceneName = vParams.scene
+		local sceneName = resolveSceneName(vParams.scene)
 		local itemName = vParams.item
 		if sceneName and itemName then
 			local sceneItem = findSceneItem(sceneName, itemName, vParams.group)
@@ -1457,8 +1471,7 @@ local function process(cData)
 		end
 		env.scriptTransition()
 	elseif cmd == "fetchprops" and vParams.scene and vParams.item then
-		local sceneName = vParams.scene or ""
-		if sceneName == "_current" then sceneName = currentSceneName() end
+		local sceneName = resolveSceneName(vParams.scene or "")
 		local item = findSceneItem(sceneName, vParams.item, vParams.group)
 		if not item then
 			if debug then obs.script_log(obs.LOG_INFO, format("fetchprops : no scene item %s/%s", vParams.scene, vParams.item)) end
