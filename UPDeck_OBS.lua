@@ -1070,6 +1070,12 @@ local function process(cData)
 				end
 			end
 		end
+	elseif cmd == "open_projector" then
+		local pType = vParams.type or "preview"
+		local monitor = vParams.monitor or -1
+		local geom = vParams.geometry
+		local name = vParams.name
+		obs.obs_frontend_open_projector(pType, monitor, geom, name)
 	elseif cmd == "filter" then
 		-- enable / disable filter
 		local sceneName = vParams.scene
