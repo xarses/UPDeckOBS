@@ -221,16 +221,16 @@ end
 
 
 function ls(folder)
-  	local i, files = 0, {}
-    local dir = io.popen(unix and 'ls -1p "'..folder..'"' or 'dir /b /a-d /on "'..folder..'"')
-    if dir then
-	    for file in dir:lines() do
-	    	i = i + 1
-	        files[i] = file
-	    end
-	    dir:close()
+	local i, files = 0, {}
+	local dir = io.popen(unix and 'ls -1p "'..folder..'"' or 'dir /b /a-d /on "'..folder..'"')
+	if dir then
+		for file in dir:lines() do
+			i = i + 1
+			files[i] = file
+		end
+		dir:close()
 	end
-    return files
+	return files
 end
 
 
@@ -823,6 +823,14 @@ local function process(cData)
 		local scene = findSource(scenes, name)
 		if scene then obs.obs_frontend_set_current_preview_scene(scene) end
 		obs.source_list_release(scenes)
+	elseif cmd == "swap" then
+		-- switch the active scene with the preview scene
+		local transition = vParams.trans or "_none"
+		local transitions = obs.obs_frontend_get_transitions()
+		transition = findSource(transitions, transition)
+		if transition then obs.obs_frontend_set_current_transition(transition) end
+		obs.obs_frontend_preview_program_trigger_transition()
+		obs.source_list_release(transitions)
 	elseif cmd == "obsfx" and iParams[2] then
 		-- sfx flag : OBS or desktop app
 		sfx = iParams[2] == "1"
