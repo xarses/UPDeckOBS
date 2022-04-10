@@ -1,4 +1,4 @@
-= (Unofficial) UPDeck OBS Scrip =
+# (Unofficial) UPDeck OBS Scrip =
 
 This script is a unofficial fork of the OBS lua script that is used
 with UPDeck to communicate between the UPDeck server process and OBS.
@@ -7,13 +7,13 @@ The last official version is kept on the `official` (2.1.21) branch and can like
 be found on the UPDeck discord server.
 
 
-= Changes =
+# Changes
 
 Here are a list of the current changes offered by this fork.
 
-== New commands ==
+## New commands
 
-=== swap ===
+### swap
 When in studio mode, it swaps the current preview scene with the program
 screen.
 
@@ -27,7 +27,7 @@ swap
 trans=some_optional_transition
 ```
 
-=== open_projector ===
+### open_projector
 Can open a projector window in a number of ways
 
 **Params**
@@ -44,9 +44,9 @@ type=scene
 name=Game window
 ```
 
-== Modified behaviors ==
+## Modified behaviors
 
-=== record ===
+### record
 record has been extended to be able to pause/unpause the recording. (Note:
 the ability to pause is dependent on your output settings and most specifically
 the format your using (mkv supports this)). Toggling pause while not recording
@@ -70,7 +70,7 @@ record
 pause
 ```
 
-=== meta parameters for scene ===
+### meta parameters for scene
 Add `_preview` support for scene name meta, as well as unify all meta keywords
 for the `scene` argument.
 
@@ -97,7 +97,7 @@ switch
 scene=_preview
 ```
 
-=== Repair OBS -> UpDeck buttons ===
+### Repair OBS -> UpDeck buttons 
 In prior versions, there was a feature that allowed the user to bind a
 keycode in OBS that would send to UP Deck to be read and executed.
 
