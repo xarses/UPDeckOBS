@@ -922,6 +922,10 @@ local function process(cData)
 			if not obs.obs_frontend_recording_active() then obs.obs_frontend_recording_start() end
 		elseif iParams[2] == "stop" then
 			if obs.obs_frontend_recording_active() then obs.obs_frontend_recording_stop() end
+		elseif iParams[2] == "pause" then
+			if obs.obs_frontend_recording_active() then
+				obs.obs_frontend_recording_pause(not obs.obs_frontend_recording_paused())
+			end
 		else
 			if obs.obs_frontend_recording_active() then
 				obs.obs_frontend_recording_stop()
