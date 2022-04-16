@@ -614,10 +614,10 @@ local function process(cData)
 					obs.obs_sceneitem_get_scale(mTarget, vec2)
 					sw, sh = sWidth * vec2.x, sHeight * vec2.y
 					local crp = obs.obs_sceneitem_crop()
-					obs.obs_sceneitem_get_crop(sceneItem, crp)
+					obs.obs_sceneitem_get_crop(mTarget, crp)
 					cl, cr, ct, cb = crp.left, crp.right, crp.top, crp.bottom
 					r = obs.obs_sceneitem_get_rot(mTarget)
-					move, resize = true, true
+					move, resize, crop = true, true, true
 					relative = {}
 				else
 					sceneItem = nil
