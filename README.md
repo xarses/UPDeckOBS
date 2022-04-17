@@ -6,6 +6,9 @@ with UPDeck to communicate between the UPDeck server process and OBS.
 The last official version is kept on the `official` (2.1.21) branch and can likely still
 be found on the UPDeck discord server.
 
+# Fixes
+* The command animate has a morph=targetItem parameter that is supposed to copy all of the parameters including its clip, which was not getting copied correctly. This should also fix the morph parameter that is also supported by position|resize|rotate|opacity
+* `alpha` in `animate|position|resize|rotate|opacity` is fixed to convert 2-100 to a float between 0 and 1 (what OBS expects). If your weird and want to set your alpha to `1` as in 1% you need to convert it to a float by hand (`0.01`) as this will be interpreted as fully on
 
 # Changes
 
@@ -115,3 +118,4 @@ volumes (configured or not) every 8 seconds.
 
 To use this, you need a) have a deck saved on the server b) you need
 to set this deck name in the OBS Script settings
+

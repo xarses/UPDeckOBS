@@ -490,6 +490,8 @@ local function process(cData)
 		local reset = tonumber(vParams.reset)
 		local delay = tonumber(vParams.delay)
 		local tag = vParams.tag
+		if alpha and alpha > 1 then alpha = alpha / 100.0 end
+		--log("Alpha "..alpha or "")
 		if not sceneName or not itemName then return false end
 		local sceneItem = findSceneItem(sceneName, itemName, vParams.group)
 		if not sceneItem then return false end
@@ -711,7 +713,7 @@ local function process(cData)
 			if alpha and cFilter then
 				local s = obs.obs_data_create()
 				s = obs.obs_source_get_settings(cFilter)
-				anData.startA = obs.obs_data_get_int(s, "opacity") or 100
+				anData.startA = obs.obs_data_get_double(s, "opacity") or 1
 				obs.obs_data_release(s)
 				anData.distA = relative.alpha and alpha or alpha - anData.startA
 			end
@@ -786,7 +788,7 @@ local function process(cData)
 						alpha = anData.startA + progress * anData.distA
 						local s = obs.obs_data_create()
 						s = obs.obs_source_get_settings(cFilter)
-						obs.obs_data_set_int(s, "opacity", alpha)
+						obs.obs_data_set_double(s, "opacity", alpha)
 						obs.obs_source_update(cFilter, s)
 						obs.obs_data_release(s)
 					end
@@ -979,6 +981,7 @@ local function process(cData)
 		local alpha = tonumber(vParams.alpha)
 		local morphScene =resolveSceneName(vParams.morphScene or vParams.scene2)
 		local morph = vParams.morph
+		if alpha and alpha > 1 then alpha = alpha / 100 end
 		if not sceneName or not itemName then return false end
 		local sceneItem = findSceneItem(sceneName, itemName, vParams.group)
 		if morph then
@@ -1019,8 +1022,8 @@ local function process(cData)
 			if cFilter then
 				local s = obs.obs_data_create()
 				s = obs.obs_source_get_settings(cFilter)
-				local currentAlpha = obs.obs_data_get_int(s, "opacity") or 100
-				obs.obs_data_set_int(s, "opacity", relative.alpha and currentAlpha + alpha or alpha)
+				local currentAlpha = obs.obs_data_get_double(s, "opacity") or 1
+				obs.obs_data_set_double(s, "opacity", relative.alpha and currentAlpha + alpha or alpha)
 				obs.obs_source_update(cFilter, s)
 				obs.obs_data_release(s)
 				obs.obs_source_release(cFilter)
