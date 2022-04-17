@@ -990,7 +990,7 @@ local function process(cData)
 				obs.obs_sceneitem_get_bounds(mTarget, vec2)
 				w, h = vec2.x, vec2.y
 				local crp = obs.obs_sceneitem_crop()
-				obs.obs_sceneitem_get_crop(sceneItem, crp)
+				obs.obs_sceneitem_get_crop(mTarget, crp)
 				cl, cr, ct, cb = crp.left, crp.right, crp.top, crp.bottom
 				r = obs.obs_sceneitem_get_rot(mTarget)
 				relative = {}
