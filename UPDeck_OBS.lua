@@ -103,6 +103,12 @@ local obsOrderMove = {
 	bottom = 4, --OBS_ORDER_MOVE_BOTTOM
 }
 
+-- generate OBS Script logs based on debug level
+local function log(text)
+	if debug then
+		obs.script_log(obs.LOG_INFO, text)
+	end
+end
 
 local function findSource(list, name)
 	for i, s in ipairs(list) do
@@ -180,7 +186,7 @@ end
 local function emptyScene(scene)
 	local items = obs.obs_scene_enum_items(scene)
 	if items then
-		if debug then obs.script_log(obs.LOG_INFO, format("Clearing %d scene items", #items)) end
+		log(format("Clearing %d scene items", #items))
 		for i, item in ipairs(items) do
 			obs.obs_sceneitem_remove(item)
 		end
@@ -290,7 +296,7 @@ local function fetchReplaysWin()
 					replays[i] = repPath.."\\"..f
 					if fileList ~= "" then fileList = fileList.."\t" end
 					fileList = fileList..f
-					if debug then obs.script_log(obs.LOG_INFO, "Replay: "..f) end
+					log("Replay: "..f)
 				end
 			end
 			if i > 0 then send("replays\t"..#replays.."\t"..fileList) end
@@ -316,7 +322,7 @@ local function fetchReplays()
 				replays[i] = repPath..s..f
 				if fileList ~= "" then fileList = fileList.."\t" end
 				fileList = fileList..f
-				if debug then obs.script_log(obs.LOG_INFO, "Replay: "..f) end
+				log("Replay: "..f)
 			end
 		end
 	end
@@ -517,7 +523,7 @@ local function process(cData)
 									pVal = tonumber(pVal) or 0
 								end
 								filters[fName].params[pName].val = pVal
-								if debug then obs.script_log(obs.LOG_INFO, format("Filter%d %s = %s", f, pName, pVal)) end
+								log(format("Filter%d %s = %s", f, pName, pVal))
 							end
 						end
 					end -- check vParams for filter params
@@ -527,7 +533,7 @@ local function process(cData)
 
 		-- qtag parameter can define the animation id - default is scene/item
 		local animObject = vParams.qtag or format("%s/%s", sceneName, itemName)
-		
+
 		if queue then
 			if queue == 0 then
 				animQ[animObject] = nil
@@ -577,7 +583,7 @@ local function process(cData)
 		if anim[animObject] and anim[animObject] ~= animId and animQ[animObject] then
 			-- add to queue with flag for tag processed
 			table.insert(animQ[animObject], cData.."\txtag=1")
-			if debug then obs.script_log(obs.LOG_INFO, format("%s queue : %0d", animObject, #animQ[animObject])) end
+			log(format("%s queue : %0d", animObject, #animQ[animObject]))
 			return false
 		end
 
@@ -608,10 +614,10 @@ local function process(cData)
 					obs.obs_sceneitem_get_scale(mTarget, vec2)
 					sw, sh = sWidth * vec2.x, sHeight * vec2.y
 					local crp = obs.obs_sceneitem_crop()
-					obs.obs_sceneitem_get_crop(sceneItem, crp)
+					obs.obs_sceneitem_get_crop(mTarget, crp)
 					cl, cr, ct, cb = crp.left, crp.right, crp.top, crp.bottom
 					r = obs.obs_sceneitem_get_rot(mTarget)
-					move, resize = true, true
+					move, resize, crop = true, true, true
 					relative = {}
 				else
 					sceneItem = nil
@@ -805,7 +811,7 @@ local function process(cData)
 							anim[animObject] = nil
 							if #animQ[animObject] > 0 then
 								local nextAnim = table.remove(animQ[animObject], 1)
-								if debug then obs.script_log(obs.LOG_INFO, format("%s queue : %0d", animObject, #animQ[animObject])) end
+								log(format("%s queue : %0d", animObject, #animQ[animObject]))
 								obs.timer_add(
 									function()
 										process(nextAnim)
@@ -853,7 +859,7 @@ local function process(cData)
 	elseif cmd == "obsfx" and iParams[2] then
 		-- sfx flag : OBS or desktop app
 		sfx = iParams[2] == "1"
-		if debug then obs.script_log(obs.LOG_INFO, "OBS sfx: "..tostring(sfx)) end
+		log("OBS sfx: "..tostring(sfx))
 	elseif (cmd == "sfx" or cmd == "play") then
 		if sfx then
 			if sfxPath and sfxCmd and sfxPath ~= "" and sfxCmd ~= "" then
@@ -862,7 +868,7 @@ local function process(cData)
 				if unix then
 					pre, post = "", " &"
 					local cl = pre .. sfxCmd .. ' "' .. sfxPath .. '/' .. (iParams[2] or '_dummy_') .. '"' .. post
-					if debug then obs.script_log(obs.LOG_INFO, cl) end
+					log(cl)
 					os.execute(cl)
 				else
 					-- handle via script
@@ -984,7 +990,7 @@ local function process(cData)
 				obs.obs_sceneitem_get_bounds(mTarget, vec2)
 				w, h = vec2.x, vec2.y
 				local crp = obs.obs_sceneitem_crop()
-				obs.obs_sceneitem_get_crop(sceneItem, crp)
+				obs.obs_sceneitem_get_crop(mTarget, crp)
 				cl, cr, ct, cb = crp.left, crp.right, crp.top, crp.bottom
 				r = obs.obs_sceneitem_get_rot(mTarget)
 				relative = {}
@@ -1193,15 +1199,12 @@ local function process(cData)
 				obs.obs_sceneitem_get_pos(sceneItem, pos)
 				obs.obs_sceneitem_get_bounds(sceneItem, bounds)
 				local anchor = obs.obs_sceneitem_get_alignment(sceneItem)
-				if debug then
-					obs.script_log(
-						obs.LOG_INFO,
-						format(
-							"%s / %s\nPos: %0.2f,%0.2f\nSize: %0.2f,%0.2f\nAnchor: %d",
-							sceneName, itemName, pos.x, pos.y, bounds.x, bounds.y, anchor
-						)
+				log(
+					format(
+						"%s / %s\nPos: %0.2f,%0.2f\nSize: %0.2f,%0.2f\nAnchor: %d",
+						sceneName, itemName, pos.x, pos.y, bounds.x, bounds.y, anchor
 					)
-				end
+				)
 				send(format("objdata\t%s\t%s\t%0d\t%0d\t%0d\t%0d\t%d", sceneName, itemName, pos.x, pos.y, bounds.x, bounds.y, anchor))
 			end
 		end
@@ -1223,7 +1226,7 @@ local function process(cData)
 					val = not cd.pause
 				end
 				cd.pause = val
-			end	
+			end
 		end
 	elseif cmd == "countdown" then
 		local sourceName = vParams.source or ""
@@ -1245,7 +1248,7 @@ local function process(cData)
 				if not syncInit then
 					obs.timer_add(
 						function()
-							--if debug then obs.script_log(obs.LOG_INFO, "Syncdown...") end
+							--log("Syncdown...")
 							for sourceName, cd in pairs(syncdown) do
 								local s = obs.obs_get_source_by_name(sourceName)
 								if s then
@@ -1255,7 +1258,7 @@ local function process(cData)
 										if t < 0 then
 											if cd.cb then send(format("trigger\t%s\t%s", cd.cb, cd.dev)) end
 											syncdown[sourceName] = nil
-											if debug then obs.script_log(obs.LOG_INFO, format("Syncdown complete : %s", sourceName)) end
+											log(format("Syncdown complete : %s", sourceName))
 										else
 											if cd.up then t = cd.up - t end
 											if not cd.secs then t = minsSecs(t) end
@@ -1270,7 +1273,7 @@ local function process(cData)
 									obs.obs_source_release(s)
 								else
 									syncdown[sourceName] = nil
-									if debug then obs.script_log(obs.LOG_INFO, format("Syncdown error : %s", sourceName)) end
+									log(format("Syncdown error : %s", sourceName))
 								end
 							end -- syncdown
 						end,
@@ -1478,7 +1481,7 @@ local function process(cData)
 		local sceneName = resolveSceneName(vParams.scene or "")
 		local item = findSceneItem(sceneName, vParams.item, vParams.group)
 		if not item then
-			if debug then obs.script_log(obs.LOG_INFO, format("fetchprops : no scene item %s/%s", vParams.scene, vParams.item)) end
+			log(format("fetchprops : no scene item %s/%s", vParams.scene, vParams.item))
 			return false
 		end
 		local pos = obs.vec2()
@@ -1504,7 +1507,7 @@ local function process(cData)
 		end
 		if total > 0 then
 			send(response)
-			if debug then obs.script_log(obs.LOG_INFO, format("fetchprops %s/%s = %s", sceneName, vParams.item, response)) end
+			log(format("fetchprops %s/%s = %s", sceneName, vParams.item, response))
 		end
 	end
 end
@@ -1556,7 +1559,7 @@ listen = function(msg, tId)
 	end
 	if not msg then return nil end
 
-	if debug then obs.script_log(obs.LOG_INFO, format("Received : %s", msg)) end
+	log(format("Received : %s", msg))
 
 	if msg:len() > 1 then
 		-- process command list
@@ -1589,7 +1592,7 @@ end
 
 
 local function onHotKey(id)
-	if debug then obs.script_log(obs.LOG_INFO, format("Hotkey : %d", id)) end
+	log(format("Hotkey : %d", id))
 	sendDsk(format("button\tid=%s\tdeck=%s", id,xdeck))
 	--if obs2app then
 	--	local cData
@@ -1626,7 +1629,7 @@ end
 
 
 local function onMute(cd)
-	if debug then obs.script_log(obs.LOG_INFO, "onMute") end
+	log("onMute")
 	local muted = obs.calldata_bool(cd, "mute")
 	local source = obs.calldata_source(cd, "source")
 	if source then
@@ -1639,7 +1642,7 @@ end
 
 
 local function onVolume(cd)
-	if debug then obs.script_log(obs.LOG_INFO, "onVolume") end
+	log("onVolume")
 	local volume = obs.calldata_float(cd, "volume")
 	local source = obs.calldata_source(cd, "source")
 	if source then
@@ -1653,7 +1656,7 @@ end
 
 
 local function onSignal(signal, cd)
-	if debug then obs.script_log(obs.LOG_INFO, format("Signal: %s", signal)) end
+	log(format("Signal: %s", signal))
 end
 
 
