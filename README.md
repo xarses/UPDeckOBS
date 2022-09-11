@@ -30,6 +30,25 @@ swap
 trans=some_optional_transition
 ```
 
+### source_properties_press
+Can be used to "press" a a sources properties button, such as the "refresh" button for the browser source.
+
+**Params**
+`property`: (Required) the name of the property to refresh. (Note: these are internal names and will most likely not resemble the name in the OBS GUI, they usually have to be pulled from source)
+
+(Positional) (Repeats) The name of the source(s) you want to press
+
+```
+Press the browser refresh button
+source_properties_press
+property=refreshnocache
+BrowserOne
+BrowserTwo
+```
+
+**Known properties**:
+Source: browser, `refreshnocache`: This is the "refresh" button on the gui tray, or in the properties menu "Refresh cache of current page"
+
 ### open_projector
 Can open a projector window in a number of ways
 
@@ -37,9 +56,9 @@ Can open a projector window in a number of ways
 
 `type`: (Optional) One of `Preview` (default), `Source`, `Scene`, `StudioProgram` or `Multiveiw` (case insensitive). Describes what type of projector we want to open.
 
-`monitor` (Optional) the monitor number to show the projector on. or `-1` (default) for a window
+`monitor`: (Optional) the monitor number to show the projector on. or `-1` (default) for a window
 
-`name` (Optional) the name of the source or scene to be displayed (ignored for other projector types)
+`name`: (Optional) the name of the source or scene to be displayed (ignored for other projector types)
 
 ```
 open a projector scene

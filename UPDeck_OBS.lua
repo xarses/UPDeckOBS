@@ -424,6 +424,21 @@ local function process(cData)
 				send( format("mute\t%s\t%d", name, val and 1 or 0) )
 			end
 		end
+
+	elseif cmd == "source_properties_press" then
+		local property = vParams.property or ""
+
+		for i = 2, #iParams do
+
+			local source = obs.obs_get_source_by_name(iParams[i] or "")
+			local props = obs.obs_source_properties(source)
+			local prop = obs.obs_properties_get(props, property)
+			obs.obs_property_button_clicked(prop, source)
+
+			obs.obs_source_release(source)
+			obs.obs_properties_destroy(props)
+		end
+
 	elseif cmd == "show" then
 		-- scene item visibility
 		local val = vParams.val or ""
