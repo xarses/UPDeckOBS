@@ -1,16 +1,11 @@
 --[[
 	UP Deck Lua script
-	Author: John Craig
-	Version: 2.1.21
-	Released: 2020-04-27
-	
+	Author: John Craig, Andrew Woodward
+	Version: 2.1.21-7
+	Released: 2022-Sep-10
+
 	Notes:
-		countdown timers update
-		update line break text
-		text source line breaks
-		trigger added to fade
-		pause countdown timers
-		set preview scene
+		Add source_property_press
 --]]
 
 
